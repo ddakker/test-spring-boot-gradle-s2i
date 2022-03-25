@@ -1,6 +1,14 @@
 echo "assemble"
 
 
+function check_error() {
+  local label=$1
+  local error=$2
+  if [ ${error} -ne 0 ]; then
+    echo "Aborting due to error code $error for $label"
+    exit ${error}
+  fi
+}
 
 function get_gradle_output_dir() {
   local dir=""
