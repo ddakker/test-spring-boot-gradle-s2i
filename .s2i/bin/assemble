@@ -1,12 +1,17 @@
 echo "assemble"
 pwd
-ls -l
-ls -l /tmp
+
+
 ls -l /tmp/src
+
+
+cd /tmp/src && ./gradlew build
+
+mv /tmp/src/build/libs/test-spring-boot-mvc-0.0.1-SNAPSHOT.jar /deployments/ROOT.jar
+
 ls -l /deployments
 
-echo "LOCAL_SOURCE_DIRL: $LOCAL_SOURCE_DIR"
-ls -l $LOCAL_SOURCE_DIR
+
 
 
 #mv /tmp/src/test-micro2-springboot.war /deployments/.
