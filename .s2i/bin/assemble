@@ -75,4 +75,8 @@ echo "DEPLOYMENTS_DIR=${DEPLOYMENTS_DIR}"
 
 echo "S2I source build for Gradle detected, due to presence of a *.gradle* in ${S2I_SOURCE_DIR}"
 build_dir=$(get_gradle_output_dir)
+echo "build_dir: $build_dir"
 build_gradle ${build_dir} ${DEPLOYMENTS_DIR}
+
+ls -l /tmp/src/build/libs
+ls -l /deployments
