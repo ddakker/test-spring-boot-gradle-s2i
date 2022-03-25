@@ -10,6 +10,26 @@ function check_error() {
   fi
 }
 
+function copy_artifacts() {
+    local dir=$1
+    local dest=$2
+
+    cd ${dir}
+
+    local cp_args=${ARTIFACT_COPY_ARGS}
+    if [ x"${cp_args}" = x ]; then
+        if [ -d "hawt-app" ]; then
+            cp_args="-r hawt-app/*"
+        elif ls *.war &> /dev/null; then
+            cp_args="*.war"
+        else
+            cp_args="*.jar"
+        fi
+    fi
+    echo "Running: cp -v ${cp_args} ${dest}"
+    cp -v ${cp_args} ${dest}
+}
+
 function get_gradle_output_dir() {
   local dir=""
 
