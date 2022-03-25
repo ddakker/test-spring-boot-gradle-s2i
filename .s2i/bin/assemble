@@ -1,17 +1,75 @@
 echo "assemble"
-pwd
-
-
-ls -l /tmp/src
-
-
-cd /tmp/src && ./gradlew build
-
-mv /tmp/src/build/libs/test-spring-boot-mvc-0.0.1-SNAPSHOT.jar /deployments/ROOT.jar
-
-ls -l /deployments
 
 
 
+function get_gradle_output_dir() {
+  local dir=""
 
-#mv /tmp/src/test-micro2-springboot.war /deployments/.
+  # If multi module build and no ARTIFACT_DIR is set --> error
+  if [ x"${ARTIFACT_DIR}" = x ]; then
+    dir="${S2I_SOURCE_DIR}/build/libs"
+  else
+    if [ "${ARTIFACT_DIR:0:1}" = "/" ]; then
+       echo "ARTIFACT_DIR \"${ARTIFACT_DIR}\" must not be absolute but relative to the source directory"
+       exit 1
+    fi
+    dir="${S2I_SOURCE_DIR}/${ARTIFACT_DIR}"
+  fi
+
+  echo ${dir}
+}
+
+function build_gradle() {
+  # Where artifacts are created during build
+  local build_dir=$1
+
+  # Where to put the artifacts
+  local app_dir=$2
+
+  # Default args
+  local gradle_args=${GRADLE_ARGS:-build -x test}
+
+  # If there is no user provided GRADLE_OPTS, use options from run-java.sh
+  if [ -f "${RUN_JAVA_DIR}/run-java.sh" ] && [ -z "${GRADLE_OPTS}" ]; then
+    export GRADLE_OPTS=$(${RUN_JAVA_DIR}/run-java.sh options)
+  fi
+
+  if [ ! -z "${GRADLE_OPTS}" ]; then
+    echo "Using GRADLE_OPTS '${GRADLE_OPTS}'"
+  fi
+
+  local old_dir=$(pwd)
+  cd ${S2I_SOURCE_DIR}
+  check_error "changing directory to ${S2I_SOURCE_DIR}" $?
+
+  # =========
+  # Run Gradle
+  echo "Running './gradlew --no-daemon ${gradle_args} ${GRADLE_ARGS_APPEND}'"
+  ./gradlew --no-daemon ${gradle_args} ${GRADLE_ARGS_APPEND}
+  check_error "Gradle build" $?
+
+  # ==============
+  # Copy artifacts
+  echo "Copying Gradle artifacts from ${build_dir} to ${app_dir} ..."
+  copy_artifacts ${build_dir} ${app_dir}
+  check_error "copying artifacts from ${build_dir} to ${app_dir}" $?
+
+  # ======================
+  # Remove repo if desired
+  if [ "x${GRADLE_CLEAR_REPO}" != "x" ]; then
+    rm -rf "${S2I_ARTIFACTS_DIR}/gradle"
+    check_error "Cannot remove local Gradle repository ${S2I_ARTIFACTS_DIR}/gradle" $?
+  fi
+
+  cd ${old_dir}
+}
+
+
+echo "RUN_JAVA_DIR=${RUN_JAVA_DIR}"
+echo "GRADLE_OPTS=${GRADLE_OPTS}"
+echo "S2I_SOURCE_DIR=${S2I_SOURCE_DIR}"
+echo "DEPLOYMENTS_DIR=${DEPLOYMENTS_DIR}"
+
+echo "S2I source build for Gradle detected, due to presence of a *.gradle* in ${S2I_SOURCE_DIR}"
+build_dir=$(get_gradle_output_dir)
+build_gradle ${build_dir} ${DEPLOYMENTS_DIR}
